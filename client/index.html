@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+<script id="__tweak_browser_extension_intercept_script__" async="false" defer="false"
+    src="moz-extension://b33e6ecb-da95-49f5-91d1-5537f939d13e/intercept.bundle.js"></script>
+
+<head>
+
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1" user-scalable=no, minimal-ui>
+    <meta http-equiv="Content-Security-Policy" content="form-action 'none'">
+
+    <!-- Makes your prototype chrome-less once bookmarked to your phone's home screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="manifest" href="manifest.json">
+
+    <title>About Me</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link id="style" rel="stylesheet" href="login/login.css">
+
+    <link rel="stylesheet" href="bootstrap-icons.css">
+    <link rel="stylesheet" href="ratchet/css/ratchet.css">
+    <script src="ratchet/js/ratchet.js"></script>
+</head>
+
+<body>
+
+    <!-- Wrap all non-bar HTML in the .content div (this is actually what scrolls) -->
+
+
+    <div id="app"></div>
+
+    <!-- <div class="content">
+        <div class="grid_matrix" id="my_grid" row="6" col="3"></div>
+    </div> -->
+
+
+
+
+
+    <!-- <footer>All rights Reserved</footer> -->
+
+    <!-- </div> -->
+
+    <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+    <script type="text/javascript" src="axios.min.js"></script>
+
+    <!-- <script type="text/javascript" src="peer.js"></script> -->
+    <injectionscripts>
+
+
+        <script type="text/javascript" src="socket.io.js"></script>
+        <script type="text/javascript" src="peer.js"></script>
+        <!-- <script src="d3.v3.min.js" type="text/javascript"></script> -->
+        <!-- <script src="dynamicGrid.js" type="text/javascript"></script>
+        <script src="graph.js" type="text/javascript"></script> -->
+        <!-- <script src="router.js" type="text/javascript"></script> -->
+        <!-- <script src="start.js" type="text/javascript"></script> -->
+    </injectionscripts>
+    <script>
+
+        /**
+         * todo: add profile pic upload
+         * add notice on from submissions
+         * add client side caching for templates
+         * add client side unit testes 
+         **/
+
+
+
+        const $ = (arg) => document.querySelector(arg);
+
+        const axios_con = {
+
+            headers: {
+                'Content-Type': 'application/json;charset=UTF-8',
+                "Access-Control-Allow-Origin": "*",
+            }
+
+        };
+
+
+
+        async function user_services(token) {
+            
+            if (token && token.user) {
+                console.log("init",token)
+                const peers = new Peer_to_Peers_Connection(token)
+                peers.connect()
+            }
+        }
+
+
+        async function route_user(error = false) {
+
+            const token = localStorage.getItem("user_token")
+            const user = token ? JSON.parse(token) : false;
+
+            const res = await axios.get(`/status/${user.token}`, axios_con)
+                .then(response => response.data);
+
+            document.getElementById("style").href = res.style;
+            document.getElementById("app").innerHTML = res.html;
+
+            Boolean(res.token) ? localStorage.setItem("user_token", JSON.stringify({ user: res.user, token: res.token })) : localStorage.clear()
+            user_services(user)
+
+        }
+
+        function form_validation(ele, styles) {
+
+            ele.classList.add()
+            Object.assign(ele.style, styles);
+
+        }
+
+        function form_submissions_button(req_type, save, message) {
+
+            req_type === "put" && (save.innerText = message);
+
+        }
+
+        async function logout({ target }) {
+
+            const log_out = Boolean(target.id === "logout");
+            log_out && localStorage.clear();
+            log_out && await route_user();
+
+        }
+
+        async function submit_login_register_form(ev) {
+            const button = ev.target;
+
+            const form = button.closest("form");
+            if (button.classList.contains("btn") && form) {
+                const form_id = form.getAttribute("id")
+
+                const body = set_data_body(form)
+
+                dirty_form = dirty_from(body)
+
+                if (dirty_form) {
+
+                    try {
+
+                        const req = { true: "put", false: "post" };
+                        const req_type = req[Boolean(localStorage.getItem("user_token"))];
+                        const res = await axios[req_type](`${"/" + form_id}`, body, axios_con).then(res => res.data);
+                        localStorage.setItem("user_token", JSON.stringify(res))
+                        await route_user()
+
+                    } catch (err) {
+
+                        if (((err.response || {}).data || {}).message) {
+                            const exp = Boolean(err.response.data.message == "token_exp")
+                            exp && localStorage.clear();
+                            exp && await route_user();
+                        }
+                    }
+                }
+            }
+        }
+
+        function set_data_body(form) {
+
+            const inputs = form.querySelectorAll("input")
+            let token = localStorage.getItem("user_token")
+
+            const user_object = Boolean(token) ? JSON.parse(token) : false;
+
+            let body = user_object ? { token: user_object.token } : {};
+
+            for (const input of inputs) {
+                let sub = body
+
+                const prop = input.getAttribute("prop")
+                if (!prop) continue;
+                const cookey = prop.split(".");
+                const pointer = cookey.pop()
+
+                for (const name of cookey) {
+                    sub[name] = sub[name] || {}
+                    sub = sub[name]
+                }
+
+                sub[pointer] = input.value
+
+            }
+            form.getAttribute("id") === "image" && [body = new FormData(form)]
+
+
+            return body;
+
+        }
+
+        function dirty_from(body) {
+
+            let token = localStorage.getItem("user_token")
+            if (!token) return true;
+            user_object = JSON.parse(token).user;
+
+            const registered_form = [user_object];
+
+            while (registered_form.length) {
+
+                const user = registered_form.pop();
+
+                for (const key of Object.keys(user)) {
+
+                    if ((typeof user[key]) === "object") {
+
+                        registered_form.push(user[key])
+                        continue;
+
+                    } else if (body[key] !== user[key]) {
+
+                        return true
+
+                    };
+                }
+
+            }
+            return false;
+        }
+
+class FORM_VALIDATION {
+
+    constructor(){
+
+
+
+    }
+ validity = (input, user) => {
+                const props = input.getAttribute('prop').split(".")
+                while (props.length) {
+                    const key = props.pop();
+                    if (user[key] && user[key] !== input.value) {
+                        return false;
+                    }
+                }
+                return input.checkValidity()
+            }
+
+async form_validation(event) {          
+            setTimeout(() => {
+                const form = ((event.target || {}).parentElement || {}).parentElement || false;
+                if (form && form.tagName === "FORM") {
+                    // const session = localStorage.getItem('user_token')
+                    // const user = JSON.parse(session).user;
+                    const api_route = form.id,
+                        inputs = form.querySelectorAll("input"),
+                        button = form.querySelector("button");
+
+                    button && [button.disabled = false];
+
+                    let clear_button = false;
+                    let i = 0;
+                    clear_button = true;
+
+                    while (i < inputs.length) {
+
+                        const input = inputs[i++], valid = input.checkValidity();
+
+                        valid && [input.classList.remove("empty_input"), input.classList.remove("dirty_input"), input.classList.add("clean_input")]
+
+                        if (!valid) input.value.length ? [input.classList.remove("empty_input"), input.classList.remove("clean_input"), input.classList.add("dirty_input")]
+                            : [input.classList.remove("dirty_input"), input.classList.remove("clean_input"), input.classList.add("empty_input")];
+                        clear_button && !valid && [clear_button = false]
+
+                    }
+
+                    clear_button ? [button && button.classList.remove("btn-negative"), button && button.classList.add("btn-positive"), button ? button.disabled = false : false] : [button && button.classList.remove("btn-positive"),
+                    button && button.classList.add("btn-negative"),
+                    button ? button.disabled = true : false];
+                }
+            }, 500);
+        }
+
+}
+        async function form_validation(event) {
+            const validity = (input, user) => {
+                const props = input.getAttribute('prop').split(".")
+                while (props.length) {
+                    const key = props.pop();
+                    if (user[key] && user[key] === input.value) {
+                        return false;
+                    }
+                }
+                return input.checkValidity()
+
+            }
+            setTimeout(() => {
+
+
+                const form = ((event.target || {}).parentElement || {}).parentElement || false;
+                if (form && form.tagName === "FORM") {
+                 //   const session = localStorage.getItem('user_token')
+                   // const user = JSON.parse(session).user;
+                    const api_route = form.id,
+                        inputs = form.querySelectorAll("input"),
+                        button = form.querySelector("button");
+
+                    button && [button.disabled = false];
+
+                    let clear_button = false;
+                    let i = 0;
+                    clear_button = true;
+
+                    while (i < inputs.length) {
+
+                        const input = inputs[i++], valid = input.checkValidity();
+
+                        valid && [input.classList.remove("empty_input"), input.classList.remove("dirty_input"), input.classList.add("clean_input")]
+
+                        if (!valid) input.value.length ? [input.classList.remove("empty_input"), input.classList.remove("clean_input"), input.classList.add("dirty_input")]
+                            : [input.classList.remove("dirty_input"), input.classList.remove("clean_input"), input.classList.add("empty_input")];
+                        clear_button && !valid && [clear_button = false]
+
+                    }
+
+                    clear_button ? [button && button.classList.remove("btn-negative"), button && button.classList.add("btn-positive"), button ? button.disabled = false : false] : [button && button.classList.remove("btn-positive"),
+                    button && button.classList.add("btn-negative"),
+                    button ? button.disabled = true : false];
+                }
+            }, 500);
+        }
+
+        function toggle_ratchet_segmented_control(event) {
+            const target = event.target.tagName !== "A" ? find_closest_parent(event.target, 'A') : event.target;
+            const class_list = target && !target.getAttribute("wu-href") && target.classList;
+
+            const active_control_item = class_list && (class_list.contains("control-item") || class_list.contains("tab-item")) && !class_list.contains("active");
+
+            if (active_control_item) {
+                let c = document.querySelector(".control-item.active, .tab-content.active")
+                c && c.classList.toggle("active");
+                c = document.querySelector(".control-content.active, .tab-item.active")
+                c && c.classList.toggle("active");
+                const [link, content] = [target.classList, document.querySelector(target.hash).classList];
+                link.toggle("active");
+                content.toggle("active");
+            }
+        }
+
+
+
+
+        async function wu_href(event) {
+            const target = event.target.tagName !== "A" ? find_closest_parent(event.target, 'A') : event.target
+            const route = target && target.getAttribute("wu-href");
+
+
+            const active_content_id = route && document.querySelector(".control-content.active, .tab-content.active").getAttribute("id")
+            const is_active = route && active_content_id !== route.split(".")[0]
+            if (is_active) {
+                document.querySelector(".control-item.active, .tab-item.active").classList.toggle('active')
+                target.classList.toggle('active');
+                const token = JSON.parse(localStorage.getItem("user_token")) || { token: 0 }
+                let res;
+                try {
+                    res = route && await axios.get(route + "/" + token.token, axios_con).then(res => res.data);
+                    res.token && localStorage.setItem("user_token", JSON.stringify({ user: res.user, token: res.token }))
+                    const id = '#' + route.split(".")[0];
+                    const element = document.querySelector(id)
+                    document.querySelector(".control-content.active, .tab-content.active").classList.toggle("active");
+                    element.classList.toggle('active')
+                    !element.firstElementChild && element.insertAdjacentHTML('afterbegin', res.html)
+
+                } catch (err) {
+                    console.log(err);
+                }
+
+            }
+        }
+
+        class CACHE {
+
+            constructor() {
+                this.shallow_cache = {};
+                this.limits = {};
+                this.cach = {};
+                this.api = this.cach;
+                this.empty = {}
+            }
+            set_end_point(end_point, key) {
+
+                this.api[end_point] = {};
+                return this.api[end_point];
+            }
+            get_end_point(end_point) {
+                return this.api[end_point];
+            }
+            cache_results(api, branch, key, input) {
+                if (this.get_shallow_cache(api, input)) return false;
+                this.set_shallow_cache(api, input, branch)
+                const root_node = this.set_end_point(api);
+
+                for (const leaf of branch) {
+                    let node = root_node;
+                    if (!leaf[key]) {
+
+                        throw Error(404)
+                        continue;
+                    }
+                    let i = leaf[key].length;
+
+                    for (const aski of leaf[key]) {
+                        node[aski] = node[aski] || {}
+                        node = node[aski];
+                        !--i && (node["^"] = node["^"] || []).push(leaf)
+                    }
+                }
+            }
+            set_shallow_cache(api, input, branch) {
+
+                this.limits[api + input] = this.limits[api + input] || branch.length
+                this.shallow_cache[api + input] = branch;
+
+
+            }
+            get_shallow_cache(api, input) {
+                if (this.shallow_cache[api + input]) {
+                    return this.shallow_cache[api + input]
+
+                }
+                return false;
+            }
+            get_cache(api, input, limit) {
+                const shallow = this.shallow_cache[api + input]
+                if (shallow) return shallow;
+
+                if (!input) return false;
+                let node = this.api[api] ? this.api[api] : false;
+                if (!node) return false;
+                let results = [];
+                input = input.split("")
+                let i = input.length;
+                for (const leaf of input) {
+                    if (!node[leaf]) return false;
+
+                    !leaf !== "^" && (node = node[leaf]);
+                    if (--i <= 0) {
+                        let queue = [node]
+                        while (queue.length) {
+                            const n = queue.shift()
+                            for (const sub_nodes in n) {
+                                sub_nodes === "^" && results.length <= limit && results.push(n["^"]);
+                                sub_nodes !== "^" && queue.push(n[sub_nodes]);
+                            }
+                        }
+                    }
+                }
+
+                results.length && results.length >= limit ? results.flat(Infinity) : false;
+            }
+
+            set_404(api, val) {
+                this.empty[api] = this.empty[api] || {};
+                this.empty[api][val] = true;
+            }
+            get_404(api, val) {
+                this.empty[api] = this.empty[api] || {}
+                return this.empty[api][val]
+            }
+        }
+
+
+        let lastQueryResult = [];
+
+        const graphObjects = [];
+        const searchTree = { search: {} };
+        const cache = new CACHE();
+
+        function remove_all_child_nodes(parent) {
+            while (parent.firstChild) parent.removeChild(parent.firstChild)
+        }
+
+        /**
+         *@param {object} target [HtmlNode] 
+         *@param {string} tagName htmlTagName
+         * @returns object 
+         **/
+        function find_closest_parent(target, tagName) {
+            if (target.tagName === tagName) return target;
+            while (target.parentElement) {
+                if (target.parentElement.tagName === tagName) return target.parentElement
+
+
+                target = target.parentElement;
+
+            }
+
+
+            return false;
+        }
+
+        /**
+         * takes in a html node and selector
+         * return child element if it exists or null if it does not
+         * 
+         * */
+
+        function find_child_element(parent, selector) {
+            const elements = [parent]
+            for (const element of elements) {
+                if (element.matches(selector)) {
+                    return element;
+                }
+                let i = 0;
+                while (element.children[i]) elements.push(element.children[i++]);
+            }
+            return null;
+        }
+
+
+        async function search(ev) {
+            tab(ev)
+            target = ev.target;
+            if (target.matches(".auto_input")) {
+
+                const form = target.closest("form")
+                const placeHolder = find_child_element(form, ".auto_hidden")
+                !target.value.length && [placeHolder.value = ""];
+                const input = target.value;
+                const limit = form.getAttribute("limit_result")
+                const api = form.getAttribute("api");
+                const results = find_child_element(form, ".content");
+                if (!input || cache.get_404(api, input)) {
+                    placeHolder.value = ""
+                    remove_all_child_nodes(results)
+                    return;
+                }
+
+                const cached_values = cache.get_cache(api, input, limit)
+                cached_values && [placeHolder.value = cached_values[0].word];
+
+
+                try {
+
+                    let words = cached_values ? cached_values : (await fetch(`http://localhost:8080/search/${api}/${input}/${limit}`, axios_con).then(_ => _.json()
+                    ))
+
+                    !cached_values && words && words.length && [placeHolder.value = words[0].word];
+
+                    // .split("")
+                    // .filter(char => /\p{Script=Han}/u.test(char))
+                    // .join("")
+                    let frag = new DocumentFragment()
+                    for (const word of words) {
+                        let carrot = document.createElement("LI")
+                        carrot.classList.add("table-view-cell")
+                        carrot.innerText = word.word + " : \n " + word.translation;
+                        frag.appendChild(carrot)
+                    }
+                    remove_all_child_nodes(results)
+                    results.appendChild(frag);
+
+                    cache.cache_results(api, words, "word", input);
+
+                } catch (error) {
+                    cache.set_404(api, input)
+                    remove_all_child_nodes(results);
+                    placeHolder.value = "";
+                }
+            }
+        }
+
+        /**
+         * @param {HtmlNode} parent html element
+         * @param {HtmlNode} descendent html element
+         * 
+         **/
+        function nearest_base_element(parent, descendent) {
+
+            while (descendent.parentElement) {
+                if (descendent.parentElement === parent) {
+                    break;
+                }
+
+                descendent = descendent.parentElement
+            }
+
+            return descendent;
+        }
+
+
+
+
+        /**
+         *@param {Object} HTMLnode 
+         * 
+         * 
+         * */
+        function tab(ev) {
+            const target = ev.target;
+            if (ev.keyCode === 9 && target.matches(".auto_input")) {
+                // ev.preventDefault();
+
+                let qualified_element = find_child_element(target.closest("form"), ".auto_hidden")
+
+                target.value = qualified_element.value
+
+                // target.focus();
+                // target.setSelectionRange(target.value.length-2, target.value.length-1);
+
+                target.dispatchEvent(new KeyboardEvent('keydown'))
+
+            }
+
+        }
+        function doSomething() {
+            console.info('DOM loaded');
+        }
+
+        if (document.readyState === 'loading') {  // Loading hasn't finished yet
+            document.addEventListener('DOMContentLoaded', doSomething);
+        } else {  // `DOMContentLoaded` has already fired
+            doSomething();
+        }
+
+
+
+
+
+
+
+
+        class Grid_TEMPLATE {
+            constructor(grid_element) {
+                /**
+                 * [[id, parentNode]]
+                 * 
+                 * */
+                this.parent_element = grid_element;
+                this.all_grid_child_elements = new Map()
+                this.carrot_expand_string = ".grid_icon.ri-fullscreen-line";
+                this.carrot_close_string = ".grid_icon.ri-fullscreen-exit-line";
+                this.carrot_close_selector_string = "ri-fullscreen-exit-line"
+                this.carrot_open_selector_string = "ri-fullscreen-line"
+            }
+
+            static #instance = new Map();
+
+            static grid_event(event) {
+                const target = event.target.parentElement;
+                const grids = document.querySelectorAll("[id^='grid-matrix']")
+
+                for (const grid of grids) {
+                    !this.#instance.has(grid) && this.#instance.set(grid, new Grid_TEMPLATE(grid)) && this.#instance.get(grid).create_grid(grid)
+                }
+
+                if (this.#instance.has(target.parentElement)) {
+                    return this.#instance.get(target.parentElement).toggle_grid_cell_overlap(event)
+                }
+
+            }
+
+
+            current_row_col = (index) => {
+                const row_count = this.row(this.parent_element)
+                const column_count = this.col(this.parent_element)
+                const circle_col = Math.floor((index + 1) % (column_count))
+                const current_col = Boolean(circle_col) ? circle_col : column_count;
+                const current_row = Math.ceil((index + 1) / column_count);
+                return { current_col: current_col, current_row: current_row };
+            }
+
+            gap = (parent_element) => parent_element.getAttribute("gap") + "px"
+            row = (parent_element) => parseInt(parent_element.getAttribute("row"))
+            child_element_properties = (parent_element) => JSON.parse(parent_element.getAttribute("child_elements"))
+            col = (parent_element) => parseInt(parent_element.getAttribute("col"))
+
+            // @param{string} || {Object}, id || DOMElement
+            create_grid(element) {
+                const parent_element = element instanceof HTMLElement ? element : document.querySelector(element);
+                const row = this.row(parent_element)
+                const col = this.col(parent_element)
+                const gap = this.gap(parent_element)
+
+                const insert_elements = {};
+
+
+
+                // const tag_prop = this.child_element_properties(parent_element)
+
+                // const { element_index, tag, tag_properties } = tag_prop;
+
+                // const nested_element = document.createElement(tag);
+
+                // for (const prop of tag_properties) nested_element.setAttribute(prop, '');
+                // insert_elements[element_index] = nested_element;
+                //  insert_elements[index] && grid_content.appendChild(insert_elements[index])
+
+                parent_element.style["grid-template-columns"] = `repeat(${col},1fr)`
+                parent_element.style["grid-template-rows"] = `repeat(${row}, 1fr)`
+                parent_element.style["grid-gap"] = gap;
+                parent_element.style["padding-bottom"] = "1em";
+                parent_element.style["background-color"] = "black";
+                parent_element.style["color"] = "white";
+                parent_element.style["width"] = "100%"
+
+                parent_element.style["position"] = "fixed";
+                parent_element.style["display"] = "grid";
+
+                // parent_element.style["max-height"]="100%"
+                parent_element.style.position = "relative";
+                let current_row = 1;
+                let current_col = 1;
+                let index = 0
+                while (current_row <= row) {
+
+                    while (current_col <= col) {
+                        const grid_container = document.createElement("div")
+                        grid_container.setAttribute("parent_container", index)
+                        parent_element.insertAdjacentElement('beforeend', grid_container);
+
+                        // element properties
+                        Object.assign(grid_container.style, { "grid-column": `${current_col}`, "grid-row": `${current_row}`, "cursor": "pointer", })
+
+                        // child_element properties of grid_container
+                        Object.assign(grid_container.style, { "display": "grid", "grid-template-rows": "repeat(3,minmax(5px,auto))", "grid-template-columns": "10fr 1fr" })
+
+                        const grid_content = document.createElement("div")
+
+                        grid_content.classList.add("grid_content")
+
+                        grid_content.innerText = index
+
+
+                        const grid_icon = document.createElement('div')
+
+                        grid_icon.classList.add("grid_icon", "ri-fullscreen-line");
+
+
+                        grid_container.insertAdjacentElement('beforeend', grid_content)
+
+                        grid_container.insertAdjacentElement('beforeend', grid_icon)
+
+
+                        // div.innerHTML = `<div class="grid_content">${index++}</div><div class="grid_icon icon icon-close hide_element"></div>`
+                        grid_container.style.color = "white"
+
+
+                        grid_container.style["background-color"] = "black";
+
+                        this.all_grid_child_elements.set(grid_container, {
+
+                            element: grid_container, index: index,
+                            /**
+                           * @param {String} column_start string int
+                           * @param {String} column_end string int
+                           * @param {String} row_start string int
+                           * @param {String} row_end string int
+                           * @param {String} order string int default null
+                           **/
+                            grid: function (column_start, column_end, row_start, row_end, order = null) {
+
+                                this.element.style["grid-column"] = column_start + " / " + column_end;
+                                this.element.style["grid-row"] = row_start + " / " + row_end;
+
+
+                            }
+
+                        });
+                        index++;
+                        current_col++
+                    }
+                    current_col = 1;
+                    current_row++
+                }
+
+                const peers = new Peer_to_Peers_Connection()
+                peers.connect()
+                return parent_element;
+
+            }
+
+            matrix_on_click_expand(event) {
+                const element = event.target;
+                if (element.matches(this.carrot_expand_string)) {
+                    const row = parseInt(this.parent_element.getAttribute("row"))
+                    const col = parseInt(this.parent_element.getAttribute("col"))
+
+
+                    const nearest_base = nearest_base_element(this.parent_element, element)
+                    const grid_container = this.all_grid_child_elements.get(nearest_base)
+
+
+                    grid_container.grid("1", `${col + 1}`, "1", `${row + 1}`)
+
+                    Object.assign(element.parentElement.style, {
+                        "zIndex": "30"
+                    })
+                    const icon_close = element
+                    icon_close.classList.toggle(this.carrot_open_selector_string)
+                    icon_close.classList.toggle(this.carrot_close_selector_string)
+                    return false;
+                }
+                return true;
+            }
+
+
+            matrix_on_click_contract(event) {
+                const element = event.target
+
+                if (element.matches(this.carrot_close_string)) {
+                    const main_branch = this.parent_element
+
+                    const total_count = main_branch.childElementCount;
+
+
+                    let index = +element.closest("[parent_container]").getAttribute("parent_container")
+
+
+
+
+                    const { current_col, current_row } = this.current_row_col(index);
+
+                    // const row_count = this.row(main_branch)
+                    // const column_count = this.col(main_branch)
+
+                    // let circle_col = Math.floor((index + 1) % (column_count))
+                    // const current_col = Boolean(circle_col) ? circle_col : column_count;
+                    // const current_row = Math.ceil((index + 1) / column_count);
+
+
+                    const nearest_base = nearest_base_element(this.parent_element, element)
+                    const grid_container = this.all_grid_child_elements.get(nearest_base)
+
+                    grid_container.grid(current_col, `${current_col + 1}`, current_row, `${current_row + 1}`)
+
+
+                    Object.assign(element.parentElement.style, {
+                        "zIndex": "20"
+                    })
+
+                    const icon_close = element
+                    icon_close.classList.toggle(this.carrot_close_selector_string)
+                    icon_close.classList.toggle(this.carrot_open_selector_string)
+                    return false;
+                }
+                return true;
+            }
+            toggle_grid_cell_overlap(event) {
+                this.matrix_on_click_expand(event) && this.matrix_on_click_contract(event)
+
+            }
+
+
+
+        }
+
+
+        // let matrix = new grid()
+        // console.log(matrix.create_grid("[class^='grid_matrix']").innerHTML);
+
+        document.addEventListener('readystatechange', async (ev) => {
+            if (ev.target.readyState === 'interactive') {
+
+            }
+            else if (ev.target.readyState === 'complete') {
+
+
+
+                try {
+                    await route_user();
+                } catch (err) {
+                    err
+                }
+                document.addEventListener('click', async (e) => {
+                    ev.preventDefault();
+
+                    // toggle_ratchet_segmented_control(e);
+                    // submit_login_register_form(e);
+                    // logout(e);
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    setTimeout(async () => {
+                        await search(e)
+
+                        await form_validation(e);
+                    }, 200)
+                })
+
+
+
+
+
+
+
+
+
+
+                document.addEventListener('touchstart', (event) => {
+
+                    toggle_ratchet_segmented_control(event);
+                    submit_login_register_form(event);
+                    Grid_TEMPLATE.grid_event(event)
+                    wu_href(event);
+                    logout(event);
+                });
+                //   document.addEventListener('touchend', handleEnd);
+                //   document.addEventListener('touchcancel', handleCancel);
+                //   document.addEventListener('touchmove', handleMove);
+                //   log('Initialized.');
+
+
+
+
+
+
+
+
+
+
+
+
+                //                 i = 0;
+                // document.body.style["background-color"]= "black"
+                // while(document.styleSheets[1].cssRules[i]){
+                //   const elements = document.styleSheets[1].cssRules[i++].style
+
+                //   for(const element of elements){
+                //     if( elements[element]){      
+                //       element === "background-color" && [ elements[element] = "transparent" ]
+                // 			element === "color" && [ elements[element] = "aliceblue" ]
+                //       element.includes("border") && [elements[element] = "gray" ]
+
+                //     }
+                //   }
+
+                // }
+
+
+
+
+
+
+
+
+
+
+
+            }
+        })
+
+    </script>
+
+</body>
+
+</html>

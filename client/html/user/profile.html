@@ -1,0 +1,13 @@
+<div class="content table-view">
+    <form id="update_user">
+     ${temp.form_values(decorator, {
+        "name.first": { type: "text", disabled: true, title: "Your Last Name" }, "name.last": { type: "text", disabled: true, title: "Your Last Name" },
+        "balance": { type: "number", disabled: true },
+        "phone": {
+          type: "tel", pattern: "[0-9]{1}-[0-9]{3}-[0-9]{3}-[0-9]{4}", disabled: false, title: "10 digit phone number", example: "1-949-712-1536"
+        },
+        "email":{type:"email" , title:"Your Email"}
+      })}
+      <button type="button" id="update" class="btn btn-block btn-negative">Update Profile</button>
+      </form>
+  </div> 
