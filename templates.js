@@ -163,7 +163,7 @@ export default async function tempting_service(user, template_id) {
 
   let html = template_decorator(file, user);
 
-  if (env.NO_CACHE) {
+  if (env && env.NO_CACHE) {
     getFiles = false; // clears cache, remove when done testing
   }
 
