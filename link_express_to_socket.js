@@ -25,21 +25,25 @@ export default async function link_express_to_socket(express_app, port) {
         }
     });
 
-
+ 
 
     const id_to_socket = new Map();
 
-    let connectedUsers = new Set();
+    const connectedUsers = new Set(); 
+    
+    let connected_users = [...connectedUsers]
     io.on('connection', socket => {
 
         let email = socket.handshake.query.email
         id_to_socket.set(email, socket.id);
         connectedUsers.add(email)
-        
+        connected_users = [...connectedUsers]
+        socket.broadcast.emit('update-user-list', { userIds: connected_users });
+
         socket.on('disconnect', () => {
             connectedUsers.delete(socket.handshake.query.email)
-          
-            socket.broadcast.emit('update-user-list', { userIds: [...connectedUsers] })
+                             connected_users = [...connectedUsers]
+            socket.broadcast.emit('update-user-list', { userIds:  connected_users})
         })
 
         socket.on('mediaOffer', data => {
@@ -65,8 +69,8 @@ export default async function link_express_to_socket(express_app, port) {
 
         socket.on('requestUserList', () => {
           
-                socket.emit('update-user-list', { userIds: [...connectedUsers] });
-            socket.broadcast.emit('update-user-list', { userIds: [...connectedUsers] });
+                socket.emit('update-user-list', { userIds: connected_users });
+            socket.broadcast.emit('update-user-list', { userIds: connected_users });
            
         });
     });
