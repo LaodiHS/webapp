@@ -6,12 +6,12 @@ import { join, dirname } from 'path'
 
 
 import { fileURLToPath } from "url";
-const file_system = Promise.promisifyAll(fs);
+
 
 const root_import = import.meta.url;
 
 export default function file_system_tools(meta = import.meta.url) {
-
+    const file_system = Promise.promisifyAll(fs);
 
     const this_dir = dirname(fileURLToPath(meta))
     let root_dir = dirname(fileURLToPath(root_import)).split("/")

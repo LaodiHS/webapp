@@ -1,20 +1,48 @@
-import puppeteerex from 'puppeteer-extra'
+import puppeteer_extra from 'puppeteer-extra'
 import puppeteer_extra_plugin_stealth from 'puppeteer-extra-plugin-stealth'
 // puppeteer_extra_plugin_stealth.enabledEvasions.delete('console.debug')
-puppeteerex.use(puppeteer_extra_plugin_stealth())
+puppeteer_extra.use(puppeteer_extra_plugin_stealth())
 
 
 
+export async function autoScroll(page) {
+  await page.evaluate(async () => {
+    await new Promise((resolve, reject) => {
+      var totalHeight = 0;
+      var distance = 100;
+      var timer = setInterval(() => {
+        var scrollHeight = document.body.scrollHeight;
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+
+        if (totalHeight >= scrollHeight - window.innerHeight) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 100);
+    });
+  });
+}
+
+export async function screenshot(page, path, fullPage = true) {
+
+  await autoScroll(page);
+
+  page.screenshot({
+    path: path,
+    fullPage: fullPage
+  });
+  return page;
+
+}
 
 
+export async function Puppeteer() {
 
-
-export async function Puppeteer(){
-
-const browser = await puppeteerex.launch({
+  const browser = await puppeteer_extra.launch({
     //  args: ['--proxy-server=http://192.168.49.1:8000']'''--disable-features=site-per-process'
-     executablePath: "/usr/bin/chromium-browser",
-  
+    executablePath: "/usr/bin/chromium-browser",
+
     headless: true
     // args: ['--disable-features=site-per-process', '--no-sandbox', '--lang=en-US', '--disable-extensions', '--start-maximized'],
     // devtools: false, // dumpio: true, 
@@ -34,9 +62,9 @@ const browser = await puppeteerex.launch({
   });
   let filtered_resources = ['font'];
   await page.setRequestInterception(true);
- // let add_data = fs.readFileSync('./lib/easylist.txt', 'utf8')
- // add_data = add_data.split('\n').map(x => x.replace('@ ', ""));
- // add_data.sort();
+  // let add_data = fs.readFileSync('./lib/easylist.txt', 'utf8')
+  // add_data = add_data.split('\n').map(x => x.replace('@ ', ""));
+  // add_data.sort();
   const filters = [
     'livefyre',
     'moatad',
@@ -69,10 +97,10 @@ const browser = await puppeteerex.launch({
       req.continue()
     }
   });
- // const ext = '/Users/ckanich/Downloads/uBlock0.chromium'; `--load-extension=${ext}`, `--disable-extensions-except=${ext}`
+  // const ext = '/Users/ckanich/Downloads/uBlock0.chromium'; `--load-extension=${ext}`, `--disable-extensions-except=${ext}`
   // let page1 = [page1, page1];
   // for await (page of page1) {
-    // }
+  // }
   // page.on('response', async (response) => {
   //   const matches = /.*\.(jpg|png|svg|gif)$/.exec(response.url());
   //   if (matches && (matches.length === 2)) {
@@ -82,37 +110,40 @@ const browser = await puppeteerex.launch({
   //   }
   // });
 
-let arr = ['https://javascriptweekly.com/issues']
-while(arr.length){
-let url = arr.pop();
-try{
- await page.goto(url,{
-    waitUntil: "networkidle0",
-  }).catch(e=>{
-    e
-  });
+  let arr = ['https://javascriptweekly.com/issues']
+  while (arr.length) {
+    let url = arr.pop();
+    try {
+      await page.goto(url, {
+        waitUntil: "networkidle0",
+      }).catch(e => {
+        e
+      });
 
-const links = await page.evaluate(()=>{
-   return Array.from(document.querySelectorAll('.issue > a')).map(a=>[a.innerText, window.location.hostname + a.getAttribute('href')])
-})
-
-
-// await element[0]
-// .screenshot({
-//   path: `public/${symbol}_max_pain_${item_catagory}.png`,
-// })
+      const links = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('.issue > a')).map(a => [a.innerText, window.location.hostname + a.getAttribute('href')])
+      })
 
 
-console.log(links)
+      // await element[0]
+      // .screenshot({
+      //   path: `public/${symbol}_max_pain_${item_catagory}.png`,
+      // })
 
 
-}catch(err){
+      console.log(links)
 
-console.log(err)
 
-}
-}
+    } catch (err) {
+
+      console.log(err)
+
+    }
+  }
 }
 
 
 Puppeteer();
+
+
+

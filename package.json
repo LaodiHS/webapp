@@ -14,12 +14,17 @@
     "bluebird": "^3.7.2",
     "body-parser": "^1.20.0",
     "bootstrap-icons": "^1.9.1",
+    "chartist": "^0.11.4",
+    "chartist-plugin-legend": "^0.6.2",
     "crypto": "^1.0.1",
     "dotenv": "^16.0.1",
     "env": "0.0.2",
     "express": "^4.18.1",
     "express-logging": "^1.1.1",
     "express-validator": "^6.14.1",
+    "google-closure-compiler": "^20220719.0.0",
+    "gridjs": "^5.0.2",
+    "gridstack": "^5.1.1",
     "jest": "^28.1.2",
     "logops": "^2.1.2",
     "lowdb": "^3.0.0",
@@ -38,10 +43,16 @@
     "socket-io": "^1.0.0",
     "socket.io": "^4.5.1",
     "stringifystream": "^1.0.5",
+    "twit": "^2.2.11",
     "twitter-api-sdk": "^1.1.0",
+    "twitter-api-v2": "^1.12.3",
     "ws": "^8.8.0"
   },
   "engines": {
     "node": "14.4.0"
+  },
+  "devDependencies": {
+    "google-closure-compiler-js": "^20200719.0.0",
+    "webpack-closure-compiler": "^2.1.6"
   }
 }

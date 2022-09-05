@@ -103,10 +103,8 @@ export async function check_all_inserted_users_in_database(users) {
 
         users_in_database[user.id]
 
-
     }
-
-
+    
     tests.push(["check_all_inserted_users_in_database"])
 
 

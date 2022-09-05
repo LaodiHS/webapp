@@ -1,0 +1,32 @@
+<div>
+<header class="bar bar-nav">
+
+    <div class="segmented-control">
+        <a class="control-item " wu-href="signup.html" data-transition="slide-in">Sign Up</a>
+        <a class="control-item active" href="#login" data-transition="slide-in">Log In</a>
+        <a class="control-item " wu-href="home.html" data-transition="slide-in">Home</a>
+
+    </div>
+
+    </header>
+<div class= "content"> 
+    <form class="control-content input-group" id="signup" autocomplete="on"></form>  
+    <form class="control-content active input-group" id="login" autocomplete="on">
+        <div class="input-row">
+            <label for="email" class="form-label">email</label>
+            <input class="input-group-text" id="email" prop="email" placeholder="Email Address *" type="email"
+                autocomplete="on" required />
+        </div>
+        <div class="input-row">
+            <label for="password" class="form-label">password</label>
+            <input class="input-group-text" id="password" prop="password" placeholder="Password *" type="password"
+                autocomplete="on" required />
+        </div>
+        <button type="button" class="btn btn-block btn-negative">Log In</button>
+    </form>
+
+    <div class="control-content" id="home"></div>
+    
+ 
+</div>
+</div>
